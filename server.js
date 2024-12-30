@@ -1,80 +1,49 @@
 const express = require('express');
-const mysql = require('mysql');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const bodyParser = require('body-parser');
+const db = require('./db/connetion'); // Pastikan file koneksi database ada di ./db/connection.js
 
-// Mengatur environment variables
-dotenv.config();
+// Import routes
+const penggunaRoutes = require('./routes/PenggunaRoutes');
+const gambarRoutes = require('./routes/gambarRoutes');
+const kategoriRoutes = require('./routes/KategoriRoutes');
+const komentarRoutes = require('./routes/KomentarRoutes');
+const pengikutRoutes = require('./routes/PengikutRoutes');
+const sukaRoutes = require('./routes/SukaRoutes');
 
 const app = express();
-app.use(express.json());
-app.use(cors()); // Untuk mengizinkan request dari domain lain
 
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root', // Ganti dengan username MySQL Anda
-  password: '', // Ganti dengan password MySQL Anda
-  database: 'pixture', // Ganti dengan nama database Anda
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/pengguna', penggunaRoutes);
+app.use('/api/gambar', gambarRoutes);
+app.use('/api/kategori', kategoriRoutes);
+app.use('/api/komentar', komentarRoutes);
+app.use('/api/pengikut', pengikutRoutes);
+app.use('/api/suka', sukaRoutes);
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('Welcome to the API server!');
 });
 
-db.connect(err => {
-  if (err) throw err;
-  console.log('Database connected!');
+// Handle 404 errors
+app.use((req, res, next) => {
+  res.status(404).send('Route not found');
 });
 
-// Endpoint untuk Sign Up
-app.post('/signup', (req, res) => {
-  const { nama_pengguna, email, kata_sandi } = req.body;
-
-  // Hash password
-  bcrypt.hash(kata_sandi, 10, (err, hash) => {
-    if (err) return res.status(500).json({ error: 'Password error' });
-
-    // Masukkan data ke tabel pengguna
-    db.query(
-      'INSERT INTO pengguna (nama_pengguna, email, kata_sandi, tanggal_dibuat) VALUES (?, ?, ?, NOW())',
-      [nama_pengguna, email, hash],
-      (err, result) => {
-        if (err) {
-          if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'Email already exists' });
-          }
-          return res.status(500).json({ error: 'Database error' });
-        }
-        res.status(201).json({ message: 'User created successfully' });
-      }
-    );
-  });
+// Handle server errors
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
 });
 
-// Endpoint untuk Login
-app.post('/login', (req, res) => {
-    const { email, password } = req.body;
-  
-    // Cek apakah email atau username ada di database
-    const query = 'SELECT * FROM pengguna WHERE email = ? OR nama_pengguna = ?';
-    db.query(query, [email, email], (err, results) => {
-      if (err) return res.status(500).json({ error: 'Database error' });
-      if (results.length === 0) return res.status(404).json({ error: 'User not found' });
-  
-      const user = results[0];
-  
-      // Bandingkan password
-      bcrypt.compare(password, user.kata_sandi, (err, isMatch) => {
-        if (err) return res.status(500).json({ error: 'Password comparison error' });
-        if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
-  
-        // Buat token JWT
-        const token = jwt.sign({ id_pengguna: user.id_pengguna }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
-        res.json({ token });
-      });
-    });
-  });
-  
-
-// Jalankan server
-app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('Server is running on http://localhost:3000');
 });
