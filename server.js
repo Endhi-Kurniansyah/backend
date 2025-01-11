@@ -1,11 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const db = require('./db/connetion'); // Pastikan file koneksi database ada di ./db/connection.js
 
 // Import routes
 const penggunaRoutes = require('./routes/PenggunaRoutes');
-const gambarRoutes = require('./routes/gambarRoutes');
+const gambarRoutes = require('./routes/GambarRoutes');
 const kategoriRoutes = require('./routes/KategoriRoutes');
 const komentarRoutes = require('./routes/KomentarRoutes');
 const pengikutRoutes = require('./routes/PengikutRoutes');
@@ -45,5 +44,5 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('Server is running on http://localhost:3000');
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
